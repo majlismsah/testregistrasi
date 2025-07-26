@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Form Kontak Darurat & Upload Dokumen</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    input, button { margin-top: 5px; padding: 5px; width: 100%; max-width: 400px; }
+    button { cursor: pointer; }
+  </style>
+  <script>
+    async function handleSubmit(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const kontakNama = form.kontak_nama.value.trim();
+      const kontakHubungan = form.kontak_hubungan.value.trim();
+      const kontakWa = form.kontak_wa.value.trim();
+
+      const fotoFile = form.foto.files[0];
+      const ktpFile = form.ktp.files[0];
+
+      if (!fotoFile || !ktpFile) {
+        alert("Mohon upload kedua file: Foto & KTP.");
+        return;
+      }
+
+      // Convert file to Base64
+      const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const fotoBase64 = await toBase64(fotoFile);
+      const ktpBase64 = await toBase64(ktpFile);
+
+      const data = {
+        kontak_nama: kontakNama,
+        kontak_hubungan: kontakHubungan,
+        kontak_wa: kontakWa,
+        foto_filename: fotoFile.name,
+        foto_mimetype: fotoFile.type,
+        foto_base64: fotoBase64,
+        ktp_filename: ktpFile.name,
+        ktp_mimetype: ktpFile.type,
+        ktp_base64: ktpBase64
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbxNtIitYMZrFeRTwAkmlr73Rr44ZEQ1QokT2-L8O2tmZmvitMu3psPaKSk8vNE0EKnpJQ/exec", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.text();
+        alert("Sukses: " + result);
+        form.reset();
+      } catch (error) {
+        console.error("Upload gagal:", error);
+        alert("Gagal mengirim data. Cek koneksi atau izin Web App Google Script.");
+      }
+    }
+  </script>
+</head>
+<body>
+  <h2>Kontak Darurat & Upload Dokumen</h2>
+  <form onsubmit="handleSubmit(event)">
+    <label>
+      Nama Kontak Darurat:
+      <input type="text" name="kontak_nama" required />
+    </label>
+    <label>
+      Hubungan:
+      <input type="text" name="kontak_hubungan" required />
+    </label>
+    <label>
+      No. WA Kontak Darurat:
+      <input type="text" name="kontak_wa" pattern="62\\d{9,}" title="Harus dimulai dengan 62" required />
+    </label>
+    <label>
+      Upload Foto Profil:
+      <input type="file" name="foto" accept="image/*" required />
+    </label>
+    <label>
+      Upload Foto KTP:
+      <input type="file" name="ktp" accept="image/*,.pdf" required />
+    </label>
+    <br><br>
+    <button type="submit">Kirim</button>
+  </form>
+</body>
+</html>
